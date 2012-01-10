@@ -239,4 +239,7 @@
          causing scroll startup to jump. -->
     <dimen name="config_viewConfigurationTouchSlop">12dp</dimen>
 
+    <integer name="config_lidOpenRotation">0</integer>
+    <integer name="config_deskDockRotation">-1</integer>
+    <bool name="config_deskDockEnablesAccelerometer">false</bool>
 </resources>
