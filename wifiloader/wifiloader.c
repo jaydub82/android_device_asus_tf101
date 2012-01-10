@@ -30,8 +30,8 @@ int get_wifi_vendor(void)
 
     file = fopen(VMISC_PATH "/ventana_hw", "r");
     if (!file) {
-        fprintf(stderr, "Failed to open ventana_hw\n");
-        return -1;
+        fprintf(stderr, "Failed to open ventana_hw, assuming vendor\n");
+        return WIFI_VENDOR_MURATA;
     }
 
     fscanf(file, "%s", buf);
@@ -69,7 +69,9 @@ int copy_nvram(const char *infilename, const char *mac)
         goto out_close_outfile;
     }
 
-    fprintf(outfile, "\nmacaddr=%s", mac);
+    if (mac[0])
+        fprintf(outfile, "\nmacaddr=%s", mac);
+
     fprintf(outfile, "\nnvram_override=1\n");
 
     if (chmod(outfilename, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) ||
@@ -203,10 +205,10 @@ int main(int argc, char *argv[])
         ret = get_mac_from_fuse(mac);
     }
     if (ret) {
-        fprintf(stderr, "Failed to get MAC\n");
-        return EXIT_FAILURE;
-    }
-    printf("MAC %s read from %s\n", mac, src);
+        fprintf(stderr, "Failed to get MAC, beware!\n");
+        mac[0] = 0;
+    } else
+        printf("MAC %s read from %s\n", mac, src);
 
     ret = copy_nvram(nvram_filename, mac);
     if (ret) {
