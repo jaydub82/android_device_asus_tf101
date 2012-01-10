@@ -17,7 +17,6 @@ NEED_WORKAROUND_CORTEX_A9_745320 := true
 
 # Kernel
 TARGET_PREBUILT_KERNEL := device/asus/tf101/kernel
-BOARD_KERNEL_CMDLINE := nvmem=128M@384M mem=448M@0M vmalloc=256M init=/init gpt video=tegrafb console=tty0 usbcore.old_scheme_first=1 tegraboot=sdmmc androidboot.hardware=ventana androidboot.console=tty0 androidboot.carrier=wifi-only no_console_suspend=1
 
 # Misc
 BOARD_HAS_NO_SELECT_BUTTON := true
