@@ -174,19 +174,9 @@ service wifiloader /system/bin/wifiloader
 #on device-removed-/sys/block/sda
 #    umount /mnt/usbdrive
 
-on property:ro.epad.model=103
-    start SerialAttach
-
-service SerialAttach /system/bin/SerialAttach
-    user root
-    group root
-    disabled
-    oneshot
-
 #Sensor: load calibration files.
 service sensors-config /system/bin/sensors-config
     class main
     user root
     oneshot
 #Sensor load calibration files end
-
