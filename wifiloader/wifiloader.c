@@ -17,8 +17,6 @@
 #include <cutils/properties.h>
 #include <private/android_filesystem_config.h>
 
-#define VMISC_PATH "/sys/devices/platform/ventana_misc"
-
 #define WIFI_VENDOR_MURATA 0
 #define WIFI_VENDOR_AZW    1
 
@@ -28,7 +26,7 @@ int get_wifi_vendor(void)
     char buf[16];
     int ventana_hw;
 
-    file = fopen(VMISC_PATH "/ventana_hw", "r");
+    file = fopen("/sys/firmware/tf101/hw", "r");
     if (!file) {
         fprintf(stderr, "Failed to open ventana_hw, assuming vendor\n");
         return WIFI_VENDOR_MURATA;
@@ -146,23 +144,27 @@ int get_mac_from_fuse(char *mac)
 {
     int ret;
     FILE *file;
-    char buf[64+1], *macbuf;
+    char buf[26+1], *macbuf;
 
-    file = fopen(VMISC_PATH "/ventana_fuse_reservedodm", "r");
+    file = fopen("/sys/firmware/fuse/odm_reserved", "r");
     if (!file) {
-        fprintf(stderr, "Failed to open ventana_fuse_reservedodm\n");
+        fprintf(stderr, "Failed to open odm_reserved\n");
         return -1;
     }
 
-    ret = fscanf(file, "%64s", buf);
+    ret = fscanf(file, "%26s", buf);
     fclose(file);
     if (ret != 1) {
         fprintf(stderr, "Failed to read fuse\n");
         return -1;
     }
 
-    /* the last 24 characters */
-    macbuf = &buf[strlen(buf) - 24];
+    if (strncmp(buf, "0x", 2)) {
+        fprintf(stderr, "Unexpected fuse content\n");
+        return -1;
+    }
+
+    macbuf = &buf[14];
 
     if (!strncmp(macbuf, "000000000000", 12)) {
         fprintf(stderr, "Fuse contains no MAC info\n");
@@ -170,9 +172,9 @@ int get_mac_from_fuse(char *mac)
     }
 
     snprintf(mac, 18, "%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
-             macbuf[0], macbuf[1], macbuf[2], macbuf[3],
-             macbuf[4], macbuf[5], macbuf[6], macbuf[7],
-             macbuf[8], macbuf[9], macbuf[10], macbuf[11]);
+             macbuf[10], macbuf[11], macbuf[8], macbuf[9],
+             macbuf[6], macbuf[7], macbuf[4], macbuf[5],
+             macbuf[2], macbuf[3], macbuf[0], macbuf[1]);
     return 0;
 }
 
