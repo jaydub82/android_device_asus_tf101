@@ -63,6 +63,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
     wifi.supplicant_scan_interval=15
 
 PRODUCT_COPY_FILES += \
+    device/asus/tf101/bdaddr:system/etc/bluetooth/bdaddr
+
+PRODUCT_COPY_FILES += \
     device/asus/tf101/bcm4329.ko:system/lib/modules/bcm4329.ko \
     device/asus/tf101/nvram.txt:system/etc/wifi/nvram.txt \
     device/asus/tf101/nvram_a.txt:system/etc/wifi/nvram_a.txt \
