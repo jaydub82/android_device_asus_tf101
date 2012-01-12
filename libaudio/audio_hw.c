@@ -120,11 +120,11 @@ struct route_setting
 /* These are values that never change */
 struct route_setting defaults[] = {
     /* general */
-    { .ctl_name = MIXER_DIGITAL_PLAYBACK_VOLUME,           .intval = 96, }, /* max 120 */
+    { .ctl_name = MIXER_DIGITAL_PLAYBACK_VOLUME,           .intval = 110, }, /* max 120 */
     { .ctl_name = MIXER_SPEAKER_SWITCH,                    .intval = 1, },
-    { .ctl_name = MIXER_SPEAKER_VOLUME,                    .intval = 50, }, /* max 63 */
+    { .ctl_name = MIXER_SPEAKER_VOLUME,                    .intval = 60, }, /* max 63 */
     { .ctl_name = MIXER_HEADPHONE_SWITCH,                  .intval = 0, },
-    { .ctl_name = MIXER_HEADPHONE_VOLUME,                  .intval = 50, }, /* max 63 */
+    { .ctl_name = MIXER_HEADPHONE_VOLUME,                  .intval = 60, }, /* max 63 */
     { .ctl_name = "Left Playback Mux",                     .strval = "Left" },
     { .ctl_name = "Right Playback Mux",                    .strval = "Right" },
     { .ctl_name = "Left Output Mixer DACL Switch",         .intval = 1 },
