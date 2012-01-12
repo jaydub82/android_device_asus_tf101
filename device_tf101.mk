@@ -81,17 +81,21 @@ PRODUCT_COPY_FILES += \
     device/asus/tf101/eGalax_Serial.idc:system/usr/idc/eGalax_Serial.idc \
     device/asus/tf101/elantech_touchscreen.idc:system/usr/idc/elantech_touchscreen.idc
 
-
 PRODUCT_PACKAGES += \
     audio.primary.ventana \
-    audio_policy.ventana \
-    audio.a2dp.default \
-    hwcomposer.default \
-    sensors.default \
-    com.android.future.usb.accessory \
-    LiveWallpapers \
-    LiveWallpapersPicker \
-    VisualizationWallpapers \
-    librs_jni \
-    wifiloader
+    audio.a2dp.default
 
+PRODUCT_PACKAGES += \
+    hwcomposer.default \
+    sensors.ventana \
+    com.android.future.usb.accessory \
+    librs_jni \
+    wifiloader \
+    su \
+    Superuser
+
+PRODUCT_PACKAGES += \
+    LiveWallpapers \
+    HoloSpiralWallpaper \
+    LiveWallpapersPicker \
+    VisualizationWallpapers
