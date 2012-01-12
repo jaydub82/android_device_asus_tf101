@@ -38,13 +38,6 @@
 #include <hardware/audio_effect.h>
 #include <audio_effects/effect_aec.h>
 
-/* Mixer control names */
-#define MIXER_PCM_PLAYBACK_VOLUME     "Digital Playback Volume"
-#define MIXER_SPEAKER_SWITCH          "Speaker Switch"
-#define MIXER_SPEAKER_VOLUME          "Speaker Volume"
-#define MIXER_HEADPHONE_SWITCH        "Headphone Switch"
-#define MIXER_HEADPHONE_VOLUME        "Headphone Volume"
-
 /* ALSA card */
 #define CARD_TF101 0
 
@@ -86,13 +79,13 @@
 #define MM_LOW_POWER_SAMPLING_RATE 44100
 
 /* sampling rate when using MM full power port */
-#define MM_FULL_POWER_SAMPLING_RATE 48000
+#define MM_FULL_POWER_SAMPLING_RATE 44100
 
 /* conversions from Percent to codec gains */
-#define PERC_TO_PCM_VOLUME(x)     ( (int)((x) * 31 )) 
-#define PERC_TO_CAPTURE_VOLUME(x) ( (int)((x) * 31 )) 
-#define PERC_TO_HEADSET_VOLUME(x) ( (int)((x) * 31 )) 
-#define PERC_TO_SPEAKER_VOLUME(x) ( (int)((x) * 31 )) 
+#define PERC_TO_PCM_VOLUME(x)     ( (int)((x) * 120 )) 
+#define PERC_TO_CAPTURE_VOLUME(x) ( (int)((x) * 63 )) 
+#define PERC_TO_HEADSET_VOLUME(x) ( (int)((x) * 63 )) 
+#define PERC_TO_SPEAKER_VOLUME(x) ( (int)((x) * 63 )) 
 
 struct pcm_config pcm_config_mm_out = {
     .channels = 2,
@@ -117,14 +110,27 @@ struct route_setting
     char *strval;
 };
 
+/* Mixer control names */
+#define MIXER_DIGITAL_PLAYBACK_VOLUME "Digital Playback Volume"
+#define MIXER_SPEAKER_SWITCH          "Speaker Switch"
+#define MIXER_SPEAKER_VOLUME          "Speaker Volume"
+#define MIXER_HEADPHONE_SWITCH        "Headphone Switch"
+#define MIXER_HEADPHONE_VOLUME        "Headphone Volume"
+
 /* These are values that never change */
 struct route_setting defaults[] = {
     /* general */
-    { .ctl_name = MIXER_PCM_PLAYBACK_VOLUME,   .intval = 20, },
-    { .ctl_name = MIXER_SPEAKER_SWITCH,        .intval = 1, },
-    { .ctl_name = MIXER_SPEAKER_VOLUME,        .intval = 20, },
-    { .ctl_name = MIXER_HEADPHONE_SWITCH,      .intval = 1, },
-    { .ctl_name = MIXER_HEADPHONE_VOLUME,      .intval = 20, },
+    { .ctl_name = MIXER_DIGITAL_PLAYBACK_VOLUME,           .intval = 96, }, /* max 120 */
+    { .ctl_name = MIXER_SPEAKER_SWITCH,                    .intval = 1, },
+    { .ctl_name = MIXER_SPEAKER_VOLUME,                    .intval = 50, }, /* max 63 */
+    { .ctl_name = MIXER_HEADPHONE_SWITCH,                  .intval = 0, },
+    { .ctl_name = MIXER_HEADPHONE_VOLUME,                  .intval = 50, }, /* max 63 */
+    { .ctl_name = "Left Playback Mux",                     .strval = "Left" },
+    { .ctl_name = "Right Playback Mux",                    .strval = "Right" },
+    { .ctl_name = "Left Output Mixer DACL Switch",         .intval = 1 },
+    { .ctl_name = "Left Speaker Mixer DACL Switch",        .intval = 1 },
+    { .ctl_name = "Right Output Mixer DACR Switch",        .intval = 1 },
+    { .ctl_name = "Right Speaker Mixer DACR Switch",       .intval = 1 },
     { .ctl_name = NULL, },
 };
 
@@ -138,7 +144,7 @@ struct mixer_ctls
     struct mixer_ctl *headphone_volume;
 };
 
-struct adam_audio_device {
+struct tf101_audio_device {
     struct audio_hw_device hw_device;
 
     pthread_mutex_t lock;       /* see note below on mutex acquisition order */
@@ -147,14 +153,14 @@ struct adam_audio_device {
     int mode;
     int devices;
     int in_call;
-    struct adam_stream_in *active_input;
-    struct adam_stream_out *active_output;
+    struct tf101_stream_in *active_input;
+    struct tf101_stream_out *active_output;
     bool mic_mute;
     struct echo_reference_itfe *echo_reference;
     bool low_power; /* if system is in a low power state */
 };
 
-struct adam_stream_out {
+struct tf101_stream_out {
     struct audio_stream_out stream;
 
     pthread_mutex_t lock;       /* see note below on mutex acquisition order */
@@ -164,14 +170,14 @@ struct adam_stream_out {
     char *buffer;
     int standby;
     struct echo_reference_itfe *echo_reference;
-    struct adam_audio_device *dev;
+    struct tf101_audio_device *dev;
     int write_threshold;
     bool low_power;                /* If the stream is in a low power playback mode */
 };
 
 #define MAX_PREPROCESSORS 3 /* maximum one AGC + one NS + one AEC per input stream */
 
-struct adam_stream_in {
+struct tf101_stream_in {
     struct audio_stream_in stream;
 
     pthread_mutex_t lock;       /* see note below on mutex acquisition order */
@@ -197,7 +203,7 @@ struct adam_stream_in {
     size_t ref_frames_in;
     int read_status;
 
-    struct adam_audio_device *dev;
+    struct tf101_audio_device *dev;
 };
 
 /**
@@ -206,8 +212,8 @@ struct adam_stream_in {
  */
 
 static int adev_set_voice_volume(struct audio_hw_device *dev, float volume);
-static int do_input_standby(struct adam_stream_in *in);
-static int do_output_standby(struct adam_stream_out *out);
+static int do_input_standby(struct tf101_stream_in *in);
+static int do_output_standby(struct tf101_stream_out *out);
 
 /* The enable flag when 0 makes the assumption that enums are disabled by
  * "Off" and integers/booleans by 0 */
@@ -244,12 +250,12 @@ static int set_route_by_array(struct mixer *mixer, struct route_setting *route,
     return 0;
 }
 
-static void force_all_standby(struct adam_audio_device *adev)
+static void force_all_standby(struct tf101_audio_device *adev)
 {
     LOGD("force_all_standby");
     
-    struct adam_stream_in *in;
-    struct adam_stream_out *out;
+    struct tf101_stream_in *in;
+    struct tf101_stream_out *out;
 
     if (adev->active_output) {
         out = adev->active_output;
@@ -266,7 +272,7 @@ static void force_all_standby(struct adam_audio_device *adev)
     }
 }
 
-static void select_mode(struct adam_audio_device *adev)
+static void select_mode(struct tf101_audio_device *adev)
 {
     LOGD("select_mode: %x",adev->mode);
     
@@ -298,9 +304,9 @@ static void select_mode(struct adam_audio_device *adev)
 }
 
 /* must be called with hw device and output stream mutexes locked */
-static int start_output_stream(struct adam_stream_out *out)
+static int start_output_stream(struct tf101_stream_out *out)
 {
-    struct adam_audio_device *adev = out->dev;
+    struct tf101_audio_device *adev = out->dev;
     unsigned int card = CARD_TF101;
     unsigned int port = PORT_MM;
 
@@ -385,7 +391,7 @@ static size_t get_input_buffer_size(uint32_t sample_rate, int format, int channe
     return size * channel_count * sizeof(short);
 }
 
-static void add_echo_reference(struct adam_stream_out *out,
+static void add_echo_reference(struct tf101_stream_out *out,
                                struct echo_reference_itfe *reference)
 {
     pthread_mutex_lock(&out->lock);
@@ -393,7 +399,7 @@ static void add_echo_reference(struct adam_stream_out *out,
     pthread_mutex_unlock(&out->lock);
 }
 
-static void remove_echo_reference(struct adam_stream_out *out,
+static void remove_echo_reference(struct tf101_stream_out *out,
                                   struct echo_reference_itfe *reference)
 {
     pthread_mutex_lock(&out->lock);
@@ -405,7 +411,7 @@ static void remove_echo_reference(struct adam_stream_out *out,
     pthread_mutex_unlock(&out->lock);
 }
 
-static void put_echo_reference(struct adam_audio_device *adev,
+static void put_echo_reference(struct tf101_audio_device *adev,
                           struct echo_reference_itfe *reference)
 {
     if (adev->echo_reference != NULL &&
@@ -417,7 +423,7 @@ static void put_echo_reference(struct adam_audio_device *adev,
     }
 }
 
-static struct echo_reference_itfe *get_echo_reference(struct adam_audio_device *adev,
+static struct echo_reference_itfe *get_echo_reference(struct tf101_audio_device *adev,
                                                audio_format_t format,
                                                uint32_t channel_count,
                                                uint32_t sampling_rate)
@@ -441,7 +447,7 @@ static struct echo_reference_itfe *get_echo_reference(struct adam_audio_device *
     return adev->echo_reference;
 }
 
-static int get_playback_delay(struct adam_stream_out *out,
+static int get_playback_delay(struct tf101_stream_out *out,
                        size_t frames,
                        struct echo_reference_buffer *buffer)
 {
@@ -484,7 +490,7 @@ static int out_set_sample_rate(struct audio_stream *stream, uint32_t rate)
 /* xface */
 static size_t out_get_buffer_size(const struct audio_stream *stream)
 {
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
 
     /* take resampling into account and return the closest majoring
     multiple of 16 frames, as audioflinger expects audio buffers to
@@ -513,9 +519,9 @@ static int out_set_format(struct audio_stream *stream, int format)
 }
 
 /* must be called with hw device and output stream mutexes locked */
-static int do_output_standby(struct adam_stream_out *out)
+static int do_output_standby(struct tf101_stream_out *out)
 {
-    struct adam_audio_device *adev = out->dev;
+    struct tf101_audio_device *adev = out->dev;
 
     if (!out->standby) {
         pcm_close(out->pcm);
@@ -537,7 +543,7 @@ static int do_output_standby(struct adam_stream_out *out)
 /* xface */
 static int out_standby(struct audio_stream *stream)
 {
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
     int status;
 
     pthread_mutex_lock(&out->dev->lock);
@@ -557,9 +563,9 @@ static int out_dump(const struct audio_stream *stream, int fd)
 /* xface */
 static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
-    struct adam_audio_device *adev = out->dev;
-    struct adam_stream_in *in;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
+    struct tf101_audio_device *adev = out->dev;
+    struct tf101_stream_in *in;
     struct str_parms *parms;
     char *str;
     char value[32];
@@ -614,7 +620,7 @@ static char * out_get_parameters(const struct audio_stream *stream, const char *
 /* xface */
 static uint32_t out_get_latency(const struct audio_stream_out *stream)
 {
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
 
     return (SHORT_PERIOD_SIZE * PLAYBACK_SHORT_PERIOD_COUNT * 1000) / out->config.rate;
 }
@@ -623,8 +629,8 @@ static uint32_t out_get_latency(const struct audio_stream_out *stream)
 static int out_set_volume(struct audio_stream_out *stream, float left,
                           float right)
 {
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
-    struct adam_audio_device *adev = out->dev;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
+    struct tf101_audio_device *adev = out->dev;
     
     LOGD("out_set_volume: left:%f, right:%f\n",left,right);
 
@@ -646,12 +652,12 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
                          size_t bytes)
 {
     int ret;
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
-    struct adam_audio_device *adev = out->dev;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
+    struct tf101_audio_device *adev = out->dev;
     size_t frame_size = audio_stream_frame_size(&out->stream.common);
     size_t in_frames = bytes / frame_size;
     size_t out_frames = RESAMPLER_BUFFER_SIZE / frame_size;
-    struct adam_stream_in *in;
+    struct tf101_stream_in *in;
     bool low_power;
     int kernel_frames;
     void *buf;
@@ -728,7 +734,9 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
         }
     } while (kernel_frames > out->write_threshold);
 
-    /*LOGD("out_write: writing:%d\n", out_frames * frame_size);*/
+    /*LOGD("out_write: writing:%d 0x%02x 0x%02x 0x%02x\n", out_frames * frame_size,
+            ((uint8_t*)buf)[0], ((uint8_t*)buf)[out_frames * frame_size / 2] ,((uint8_t*)buf)[out_frames * frame_size - 1]);*/
+
     ret = pcm_mmap_write(out->pcm, (void *)buf, out_frames * frame_size);
 
 exit:
@@ -764,10 +772,10 @@ static int out_remove_audio_effect(const struct audio_stream *stream, effect_han
 /** audio_stream_in implementation **/
 
 /* must be called with hw device and input stream mutexes locked */
-static int start_input_stream(struct adam_stream_in *in)
+static int start_input_stream(struct tf101_stream_in *in)
 {
     int ret = 0;
-    struct adam_audio_device *adev = in->dev;
+    struct tf101_audio_device *adev = in->dev;
 
     adev->active_input = in;
 
@@ -802,7 +810,7 @@ static int start_input_stream(struct adam_stream_in *in)
 /* xface */
 static uint32_t in_get_sample_rate(const struct audio_stream *stream)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
 
     return in->requested_rate;
 }
@@ -816,7 +824,7 @@ static int in_set_sample_rate(struct audio_stream *stream, uint32_t rate)
 /* xface */
 static size_t in_get_buffer_size(const struct audio_stream *stream)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
 
     return get_input_buffer_size(in->requested_rate,
                                  AUDIO_FORMAT_PCM_16_BIT,
@@ -826,7 +834,7 @@ static size_t in_get_buffer_size(const struct audio_stream *stream)
 /* xface */
 static uint32_t in_get_channels(const struct audio_stream *stream)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
 
     if (in->config.channels == 1) {
         return AUDIO_CHANNEL_IN_MONO;
@@ -848,9 +856,9 @@ static int in_set_format(struct audio_stream *stream, int format)
 }
 
 /* must be called with hw device and input stream mutexes locked */
-static int do_input_standby(struct adam_stream_in *in)
+static int do_input_standby(struct tf101_stream_in *in)
 {
-    struct adam_audio_device *adev = in->dev;
+    struct tf101_audio_device *adev = in->dev;
 
     if (!in->standby) {
         pcm_close(in->pcm);
@@ -876,7 +884,7 @@ static int do_input_standby(struct adam_stream_in *in)
 /* xface */
 static int in_standby(struct audio_stream *stream)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
     int status;
 
     pthread_mutex_lock(&in->dev->lock);
@@ -896,8 +904,8 @@ static int in_dump(const struct audio_stream *stream, int fd)
 /* xface */
 static int in_set_parameters(struct audio_stream *stream, const char *kvpairs)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
-    struct adam_audio_device *adev = in->dev;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
+    struct tf101_audio_device *adev = in->dev;
     struct str_parms *parms;
     char *str;
     char value[32];
@@ -948,8 +956,8 @@ static char * in_get_parameters(const struct audio_stream *stream,
 static int in_set_gain(struct audio_stream_in *stream, float gain)
 {
 #if 0
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
-    struct adam_audio_device *adev = in->dev;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
+    struct tf101_audio_device *adev = in->dev;
 
     unsigned int channel;
     
@@ -964,7 +972,7 @@ static int in_set_gain(struct audio_stream_in *stream, float gain)
     return 0;
 }
 
-static void get_capture_delay(struct adam_stream_in *in,
+static void get_capture_delay(struct tf101_stream_in *in,
                        size_t frames,
                        struct echo_reference_buffer *buffer)
 {
@@ -1011,7 +1019,7 @@ static void get_capture_delay(struct adam_stream_in *in,
 
 }
 
-static int32_t update_echo_reference(struct adam_stream_in *in, size_t frames)
+static int32_t update_echo_reference(struct tf101_stream_in *in, size_t frames)
 {
     struct echo_reference_buffer b;
     b.delay_ns = 0;
@@ -1077,7 +1085,7 @@ static int set_preprocessor_echo_delay(effect_handle_t handle,
     return set_preprocessor_param(handle, param);
 }
 
-static void push_echo_reference(struct adam_stream_in *in, size_t frames)
+static void push_echo_reference(struct tf101_stream_in *in, size_t frames)
 {
     /* read frames from echo reference buffer and update echo delay
      * in->ref_frames_in is updated with frames available in in->ref_buf */
@@ -1112,13 +1120,13 @@ static void push_echo_reference(struct adam_stream_in *in, size_t frames)
 static int get_next_buffer(struct resampler_buffer_provider *buffer_provider,
                                    struct resampler_buffer* buffer)
 {
-    struct adam_stream_in *in;
+    struct tf101_stream_in *in;
 
     if (buffer_provider == NULL || buffer == NULL)
         return -EINVAL;
 
-    in = (struct adam_stream_in *)((char *)buffer_provider -
-                                   offsetof(struct adam_stream_in, buf_provider));
+    in = (struct tf101_stream_in *)((char *)buffer_provider -
+                                   offsetof(struct tf101_stream_in, buf_provider));
 
     if (in->pcm == NULL) {
         buffer->raw = NULL;
@@ -1153,20 +1161,20 @@ static int get_next_buffer(struct resampler_buffer_provider *buffer_provider,
 static void release_buffer(struct resampler_buffer_provider *buffer_provider,
                                   struct resampler_buffer* buffer)
 {
-    struct adam_stream_in *in;
+    struct tf101_stream_in *in;
 
     if (buffer_provider == NULL || buffer == NULL)
         return;
 
-    in = (struct adam_stream_in *)((char *)buffer_provider -
-                                   offsetof(struct adam_stream_in, buf_provider));
+    in = (struct tf101_stream_in *)((char *)buffer_provider -
+                                   offsetof(struct tf101_stream_in, buf_provider));
 
     in->frames_in -= buffer->frame_count;
 }
 
 /* read_frames() reads frames from kernel driver, down samples to capture rate
  * if necessary and output the number of frames requested to the buffer specified */
-static ssize_t read_frames(struct adam_stream_in *in, void *buffer, ssize_t frames)
+static ssize_t read_frames(struct tf101_stream_in *in, void *buffer, ssize_t frames)
 {
     ssize_t frames_wr = 0;
 
@@ -1205,7 +1213,7 @@ static ssize_t read_frames(struct adam_stream_in *in, void *buffer, ssize_t fram
 /* process_frames() reads frames from kernel driver (via read_frames()),
  * calls the active audio pre processings and output the number of frames requested
  * to the buffer specified */
-static ssize_t process_frames(struct adam_stream_in *in, void* buffer, ssize_t frames)
+static ssize_t process_frames(struct tf101_stream_in *in, void* buffer, ssize_t frames)
 {
     ssize_t frames_wr = 0;
     audio_buffer_t in_buf;
@@ -1275,8 +1283,8 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer,
                        size_t bytes)
 {
     int ret = 0;
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
-    struct adam_audio_device *adev = in->dev;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
+    struct tf101_audio_device *adev = in->dev;
     size_t frames_rq = bytes / audio_stream_frame_size(&stream->common);
 
     /* acquiring hw device mutex systematically is useful if a low priority thread is waiting
@@ -1327,7 +1335,7 @@ static uint32_t in_get_input_frames_lost(struct audio_stream_in *stream)
 static int in_add_audio_effect(const struct audio_stream *stream,
                                effect_handle_t effect)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
     int status;
     effect_descriptor_t desc;
 
@@ -1360,7 +1368,7 @@ exit:
 static int in_remove_audio_effect(const struct audio_stream *stream,
                                   effect_handle_t effect)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
     int i;
     int status = -EINVAL;
     bool found = false;
@@ -1411,13 +1419,13 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
                                    uint32_t *channels, uint32_t *sample_rate,
                                    struct audio_stream_out **stream_out)
 {
-    struct adam_audio_device *ladev = (struct adam_audio_device *)dev;
-    struct adam_stream_out *out;
+    struct tf101_audio_device *ladev = (struct tf101_audio_device *)dev;
+    struct tf101_stream_out *out;
     int ret;
 
     LOGD("adev_open_output_stream");
     
-    out = (struct adam_stream_out *)calloc(1, sizeof(struct adam_stream_out));
+    out = (struct tf101_stream_out *)calloc(1, sizeof(struct tf101_stream_out));
     if (!out)
         return -ENOMEM;
 
@@ -1477,7 +1485,7 @@ err_open:
 static void adev_close_output_stream(struct audio_hw_device *dev,
                                      struct audio_stream_out *stream)
 {
-    struct adam_stream_out *out = (struct adam_stream_out *)stream;
+    struct tf101_stream_out *out = (struct tf101_stream_out *)stream;
 
     LOGD("adev_close_output_stream");
     
@@ -1492,7 +1500,7 @@ static void adev_close_output_stream(struct audio_hw_device *dev,
 /* xface */
 static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)dev;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)dev;
     struct str_parms *parms;
     int ret = 0;
     char *str;
@@ -1532,7 +1540,7 @@ static int adev_init_check(const struct audio_hw_device *dev)
 /* xface */
 static int adev_set_voice_volume(struct audio_hw_device *dev, float volume)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)dev;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)dev;
     
     LOGD("adev_set_voice_volume: volume: %f", volume);
     
@@ -1542,7 +1550,7 @@ static int adev_set_voice_volume(struct audio_hw_device *dev, float volume)
 /* xface */
 static int adev_set_master_volume(struct audio_hw_device *dev, float volume)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)dev;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)dev;
 
     LOGD("adev_set_master_volume: volume: %f", volume);
     
@@ -1557,7 +1565,7 @@ static int adev_set_master_volume(struct audio_hw_device *dev, float volume)
 /* xface */
 static int adev_set_mode(struct audio_hw_device *dev, int mode)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)dev;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)dev;
 
     LOGD("adev_set_mode: mode: %d", mode);
     
@@ -1574,7 +1582,7 @@ static int adev_set_mode(struct audio_hw_device *dev, int mode)
 /* xface */
 static int adev_set_mic_mute(struct audio_hw_device *dev, bool state)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)dev;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)dev;
 
     LOGD("adev_set_mic_mute: state: %d", state);
     
@@ -1590,7 +1598,7 @@ static int adev_set_mic_mute(struct audio_hw_device *dev, bool state)
 /* xface */
 static int adev_get_mic_mute(const struct audio_hw_device *dev, bool *state)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)dev;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)dev;
 
     *state = adev->mic_mute;
 
@@ -1618,8 +1626,8 @@ static int adev_open_input_stream(struct audio_hw_device *dev, uint32_t devices,
                                   audio_in_acoustics_t acoustics,
                                   struct audio_stream_in **stream_in)
 {
-    struct adam_audio_device *ladev = (struct adam_audio_device *)dev;
-    struct adam_stream_in *in;
+    struct tf101_audio_device *ladev = (struct tf101_audio_device *)dev;
+    struct tf101_stream_in *in;
     int ret;
     int channel_count = popcount(*channel_mask);
 
@@ -1628,7 +1636,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev, uint32_t devices,
     if (check_input_parameters(*sample_rate, *format, channel_count) != 0)
         return -EINVAL;
 
-    in = (struct adam_stream_in *)calloc(1, sizeof(struct adam_stream_in));
+    in = (struct tf101_stream_in *)calloc(1, sizeof(struct tf101_stream_in));
     if (!in)
         return -ENOMEM;
 
@@ -1696,7 +1704,7 @@ err:
 static void adev_close_input_stream(struct audio_hw_device *dev,
                                    struct audio_stream_in *stream)
 {
-    struct adam_stream_in *in = (struct adam_stream_in *)stream;
+    struct tf101_stream_in *in = (struct tf101_stream_in *)stream;
 
     LOGD("adev_close_input_stream");
     
@@ -1720,7 +1728,7 @@ static int adev_dump(const audio_hw_device_t *device, int fd)
 /* xface */
 static int adev_close(hw_device_t *device)
 {
-    struct adam_audio_device *adev = (struct adam_audio_device *)device;
+    struct tf101_audio_device *adev = (struct tf101_audio_device *)device;
     
     LOGD("adev_close");
 
@@ -1746,7 +1754,7 @@ static uint32_t adev_get_supported_devices(const struct audio_hw_device *dev)
 static int adev_open(const hw_module_t* module, const char* name,
                      hw_device_t** device)
 {
-    struct adam_audio_device *adev;
+    struct tf101_audio_device *adev;
     int ret;
 
     LOGE("adev_open: name:'%s'",name);
@@ -1754,7 +1762,7 @@ static int adev_open(const hw_module_t* module, const char* name,
     if (strcmp(name, AUDIO_HARDWARE_INTERFACE) != 0)
         return -EINVAL;
 
-    adev = calloc(1, sizeof(struct adam_audio_device));
+    adev = calloc(1, sizeof(struct tf101_audio_device));
     if (!adev)
         return -ENOMEM;
 
@@ -1794,7 +1802,7 @@ static int adev_open(const hw_module_t* module, const char* name,
     } \
 } while (0)
 
-    get_ctl(pcm_volume, MIXER_PCM_PLAYBACK_VOLUME);
+    get_ctl(pcm_volume, MIXER_DIGITAL_PLAYBACK_VOLUME);
     get_ctl(speaker_switch, MIXER_SPEAKER_SWITCH);
     get_ctl(speaker_volume, MIXER_SPEAKER_VOLUME);
     get_ctl(headphone_volume, MIXER_HEADPHONE_VOLUME);
@@ -1852,7 +1860,7 @@ struct audio_module HAL_MODULE_INFO_SYM = {
         .version_minor = 0,
         .id = AUDIO_HARDWARE_MODULE_ID,
         .name = "TF101 Audio HW HAL",
-        .author = "The Android Open Source Project",
+        .author = "Paul Burton",
         .methods = &hal_module_methods,
     },
 };
