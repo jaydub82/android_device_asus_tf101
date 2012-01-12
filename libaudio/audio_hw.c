@@ -215,13 +215,23 @@ static int adev_set_voice_volume(struct audio_hw_device *dev, float volume);
 static int do_input_standby(struct tf101_stream_in *in);
 static int do_output_standby(struct tf101_stream_out *out);
 
+static int ctl_set_int_all(struct mixer_ctl *ctl, int val)
+{
+    unsigned int i;
+
+    for (i = 0; i < mixer_ctl_get_num_values(ctl); i++)
+        mixer_ctl_set_value(ctl, i, val);
+
+    return 0;
+}
+
 /* The enable flag when 0 makes the assumption that enums are disabled by
  * "Off" and integers/booleans by 0 */
 static int set_route_by_array(struct mixer *mixer, struct route_setting *route,
                               int enable)
 {
     struct mixer_ctl *ctl;
-    unsigned int i, j;
+    unsigned int i;
 
     /* Go through the route array and set each value */
     i = 0;
@@ -236,13 +246,7 @@ static int set_route_by_array(struct mixer *mixer, struct route_setting *route,
             else
                 mixer_ctl_set_enum_by_string(ctl, "Off");
         } else {
-            /* This ensures multiple (i.e. stereo) values are set jointly */
-            for (j = 0; j < mixer_ctl_get_num_values(ctl); j++) {
-                if (enable)
-                    mixer_ctl_set_value(ctl, j, route[i].intval);
-                else
-                    mixer_ctl_set_value(ctl, j, 0);
-            }
+            ctl_set_int_all(ctl, enable ? route[i].intval : 0);
         }
         i++;
     }
@@ -588,10 +592,10 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
                     do_output_standby(out);
             }
             /* Switch between speaker and headphone if required */
-            mixer_ctl_set_value(adev->mixer_ctls.speaker_switch, 0,
+            ctl_set_int_all(adev->mixer_ctls.speaker_switch,
                 (val & AUDIO_DEVICE_OUT_SPEAKER) ? 1 : 0);
 
-            mixer_ctl_set_value(adev->mixer_ctls.headphone_switch, 0,
+            ctl_set_int_all(adev->mixer_ctls.headphone_switch,
                 (val & AUDIO_DEVICE_OUT_WIRED_HEADPHONE) ? 1 : 0);
                 
             LOGD("Headphone out:%c, Speaker out:%c, HDMI out:%c\n",
