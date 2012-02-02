@@ -38,7 +38,7 @@ PRODUCT_COPY_FILES += \
     device/asus/tf101/ueventd.ventana.rc:root/ueventd.ventana.rc
 
 PRODUCT_COPY_FILES += \
-    device/asus/tf101/asound.conf:system/etc/asound.conf \
+    device/asus/tf101/vold.fstab:system/etc/vold.fstab \
     device/asus/tf101/gps.conf:system/etc/gps.conf \
     device/asus/tf101/asus.hardware.TF101.xml:system/etc/permissions/asus.hardware.TF101.xml \
     frameworks/base/data/etc/tablet_core_hardware.xml:system/etc/permissions/tablet_core_hardware.xml \
