@@ -150,6 +150,7 @@ PRODUCT_COPY_FILES += \
     device/asus/tf101/elantech_touchscreen.idc:system/usr/idc/elantech_touchscreen.idc
 
 PRODUCT_PACKAGES += \
+    audio_policy.default \
     audio.primary.ventana \
     audio.a2dp.default
 
