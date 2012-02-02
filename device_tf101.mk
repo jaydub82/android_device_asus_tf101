@@ -88,6 +88,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     hwcomposer.default \
     sensors.ventana \
+    lights.ventana \
     com.android.future.usb.accessory \
     librs_jni \
     wifiloader \
