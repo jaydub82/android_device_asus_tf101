@@ -1,12 +1,19 @@
-$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
+PRODUCT_LOCALES := en_US
 
 # The gps config appropriate for this device
 #$(call inherit-product, device/common/gps/gps_us_supl.mk)
 
+$(call inherit-product-if-exists, frameworks/base/data/sounds/AllAudio.mk)
+$(call inherit-product-if-exists, external/svox/pico/lang/all_pico_languages.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/locales_full.mk)
+$(call inherit-product-if-exists, frameworks/base/data/fonts/fonts.mk)
+$(call inherit-product-if-exists, external/lohit-fonts/fonts.mk)
+$(call inherit-product-if-exists, frameworks/base/data/keyboards/keyboards.mk)
+$(call inherit-product, build/target/product/core.mk)
+
 $(call inherit-product-if-exists, vendor/asus/tf101/device-vendor.mk)
 
 DEVICE_PACKAGE_OVERLAYS += device/asus/tf101/overlay
-
 
 ifeq ($(TARGET_PREBUILT_KERNEL),)
 	LOCAL_KERNEL := device/asus/tf101/kernel
@@ -17,13 +24,74 @@ endif
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel
 
-$(call inherit-product, build/target/product/full.mk)
-
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 PRODUCT_NAME := full_tf101
 PRODUCT_DEVICE := tf101
 PRODUCT_BRAND := Android
 PRODUCT_MODEL := Full Android on TF101
+PRODUCT_POLICY := android.policy_phone
+
+PRODUCT_PACKAGES += \
+    AlarmProvider \
+    Bluetooth \
+    Calculator \
+    Camera \
+    CertInstaller \
+    DeskClock \
+    DrmProvider \
+    Email \
+    Exchange \
+    LatinIME \
+    Launcher2 \
+    Music \
+    MusicFX \
+    Phone \
+    Settings \
+    Sync \
+    SyncProvider \
+    SystemUI \
+    Updater \
+    VideoEditor \
+    WAPPushManager \
+    bluetooth-health \
+    drmserver \
+    hostapd \
+    icu.dat \
+    wpa_supplicant.conf \
+    libdrmframework \
+    libdrmframework_jni \
+    libfwdlockengine \
+    librs_jni \
+    libvideoeditor_jni \
+    libvideoeditorplayer \
+    libvideoeditor_core \
+    libWnnEngDic \
+    libWnnJpnDic \
+    libwnndict
+
+ifeq ($(wildcard vendor/google),)
+PRODUCT_PACKAGES += \
+    Calendar \
+    CalendarProvider \
+    Gallery2 \
+    OpenWnn \
+    PinyinIME \
+    Provision \
+    QuickSearchBox
+endif
+
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.com.android.dateformat=MM-dd-yyyy \
+    ro.config.ringtone=Ring_Synth_04.ogg \
+    ro.config.notification_sound=pixiedust.ogg
+
+PRODUCT_COPY_FILES += \
+    system/bluetooth/data/audio.conf:system/etc/bluetooth/audio.conf \
+    system/bluetooth/data/auto_pairing.conf:system/etc/bluetooth/auto_pairing.conf \
+    system/bluetooth/data/blacklist.conf:system/etc/bluetooth/blacklist.conf \
+    system/bluetooth/data/input.conf:system/etc/bluetooth/input.conf \
+    system/bluetooth/data/network.conf:system/etc/bluetooth/network.conf \
+    frameworks/base/media/libeffects/data/audio_effects.conf:system/etc/audio_effects.conf
 
 include frameworks/base/build/tablet-dalvik-heap.mk
 
