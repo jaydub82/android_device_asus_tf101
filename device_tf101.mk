@@ -103,6 +103,7 @@ PRODUCT_TAGS += dalvik.gc.type-precise
 PRODUCT_COPY_FILES += \
     device/asus/tf101/init.rc:root/init.rc \
     device/asus/tf101/init.ventana.rc:root/init.ventana.rc \
+    device/asus/tf101/init.ventana.usb.rc:root/init.ventana.usb.rc \
     device/asus/tf101/ueventd.ventana.rc:root/ueventd.ventana.rc
 
 PRODUCT_COPY_FILES += \
