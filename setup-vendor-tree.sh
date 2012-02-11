@@ -223,6 +223,11 @@ if [ $gapps -eq 1 ]; then
     fname="`echo $f | sed 's/\.\///'`"
     ext="${fname##*.}"
 
+    if [ "$fname" = "Android.mk" ]; then
+      # Skip the makefile being generated
+      continue
+    fi
+
     if [ "$ext" = "apk" ]; then
       # This relies upon packages/* being included before vendor/*
       # It's a little horrid...
