@@ -196,7 +196,7 @@ setupComponentVendor "broadcom" ${broadcom_files[@]}
 if [ $gapps -eq 1 ]; then
   rm -rf "$tmpDir/"/*
 
-  gUri="http://goo-inside.me/gapps/gapps_ics_4.0.3_v11.zip"
+  gUri="http://goo-inside.me/gapps/gapps-ics-20120207-signed.zip"
   gZip="`basename "$gUri"`"
 
   if [ ! -e "$gZip" ]; then
@@ -204,6 +204,9 @@ if [ $gapps -eq 1 ]; then
   fi
 
   unzip "$gZip" -d "$tmpDir"
+  pushd "$tmpDir"
+  cp -av optional/face/* system/
+  popd
 
   mkdir -p "$vendorDir/google/proprietary"
   cp -av "$tmpDir/system"/* "$vendorDir/google/proprietary/"
@@ -216,7 +219,6 @@ if [ $gapps -eq 1 ]; then
   echo "# Auto-Generated" >"$gMk"
   echo "LOCAL_PATH := \$(call my-dir)" >>"$gMk"
   pushd "$vendorDir/google/proprietary/"
-  rm -f "lib/libspeexresampler.so"
   find -mindepth 1 ! -type d | while read f; do
     fname="`echo $f | sed 's/\.\///'`"
     ext="${fname##*.}"
