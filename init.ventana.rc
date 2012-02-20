@@ -1,3 +1,5 @@
+import init.ventana.usb.rc
+
 on early-init
     mount debugfs debugfs /sys/kernel/debug
     export EXTERNAL_STORAGE /mnt/sdcard
@@ -6,17 +8,16 @@ on early-init
     symlink /mnt/sdcard /sdcard
 
     # create directory for mounting usb drives
-    #mkdir /mnt/usbdrive 0666 system system
-    #symlink /mnt/usbdrive /usbdrive
-    #remark /mnt/usbdrive, use ASUS defined mount points
-    mkdir /Removable 0755 media_rw media_rw
+    mkdir /mnt/microsd 0666 system system
+    mkdir /mnt/ext_sd 0666 system system
+    mkdir /mnt/usbdisk1 0666 system system
+    mkdir /mnt/usbdisk2 0666 system system
 
 on fs
     mount ext4 /dev/block/mmcblk0p1 /system wait ro
     setprop ro.crypto.tmpfs_options size=128m,mode=0771,uid=1000,gid=1000
     mount ext4 /dev/block/mmcblk0p7 /data wait noatime nosuid nodev
     mount ext4 /dev/block/mmcblk0p2 /cache wait noatime nosuid nodev
-    mount tmpfs tmpfs /Removable mode=0755,gid=1000
 
 on post-fs-data
     mkdir /data/misc/wifi 0770 wifi wifi
@@ -72,7 +73,7 @@ on boot
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq 1000000
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
     write /sys/devices/system/cpu/cpufreq/interactive/go_maxspeed_load 80
-
+	
 # GPS
     write /sys/class/gpio/export 203
     write /sys/class/gpio/gpio203/value 0
@@ -108,7 +109,12 @@ service dhcpcd /system/bin/dhcpcd -ABKL
     disabled
     oneshot
 
-service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL -f /system/etc/dhcpcd/dhcpcd.conf
+service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL
+    class main
+    disabled
+    oneshot
+
+service dhcpcd_eth0 /system/bin/dhcpcd -ABKL
     class main
     disabled
     oneshot
@@ -120,6 +126,11 @@ service iprenew /system/bin/dhcpcd -n
 service iprenew_wlan0 /system/bin/dhcpcd -n
     disabled
     oneshot
+
+service iprenew_eth0 /system/bin/dhcpcd -n
+    disabled
+    oneshot
+
 
 # create virtual SD card at /mnt/sdcard, based on the /data/media directory
 # deamon will drop to user/group system/media_rw after initializing
@@ -135,9 +146,9 @@ service bugreport /system/bin/dumpstate -d -v -o /data/storage/bugreports/bugrep
     keycodes 115 114
 
 #BCM
-service hciattach /system/bin/brcm_patchram_plus --enable_hci --no2bytes --enable_lpm \
-    --tosleep 50000 --baudrate 3000000 --use_baudrate_for_download --i2s=1,1,0,1 \
-    --patchram /system/etc/firmware/bcm4329.hcd /dev/ttyHS2
+service hciattach /system/bin/brcm_patchram_plus --enable_hci --enable_lpm \
+    --baudrate 3000000 --patchram /system/etc/firmware/bcm4329.hcd \
+    --i2s=1,0,0,0 /dev/ttyHS2
     class main
     user root
     group system bluetooth net_bt_admin misc
@@ -164,27 +175,8 @@ service wifiloader /system/bin/wifiloader
 #on device-removed-/sys/block/sda
 #    umount /mnt/usbdrive
 
-#Prepare TF service
-service tf_daemon /system/bin/tf_daemon -storageDir /data/tf
-    disabled
-    class main
-    user root
-    group shell
-    oneshot
-
-#Create data directory and start service
-on property:tf.enable=y
-    mkdir /data/tf
-    start tf_daemon
-
-service SerialAttach /system/bin/SerialAttach
-    user root
-    group root
-    disabled
-    oneshot
-
 #Sensor: load calibration files.
-    service sensors-config /system/bin/sensors-config
+service sensors-config /system/bin/sensors-config
     class main
     user root
     oneshot
