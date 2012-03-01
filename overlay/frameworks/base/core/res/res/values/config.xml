@@ -21,7 +21,11 @@
      for different hardware and product builds. -->
 <resources>
 
-    <bool name="config_showNavigationBar">false</bool>
+    <bool name="config_showNavigationBar">true</bool>
+   
+    <bool name="config_unpligTurnsOnScreen">true</bool>
+
+	<integer name="config_longPressOnPowerBehavior">1</integer>
 
     <bool name="config_batterySdCardAccessibility">true</bool>
 
@@ -110,6 +114,8 @@
 
     <bool name="config_sms_capable">false</bool>
 
+    <bool name="config_wifi_dual_band_support">true</bool>
+
     <bool name="config_wifi_background_scan_support">true</bool>
 
     <!-- Component name of the service providing network location support. -->
@@ -128,7 +134,9 @@
     </string-array>
 
    <integer-array translatable="false" name="config_tether_upstream_types">
+        <item>0</item>
         <item>1</item>
+        <item>5</item>
         <item>7</item>
     </integer-array>
 
@@ -139,5 +147,6 @@
     <!-- Whether to even allow system settings for crt animations
      setting this to false will completely disable them -->
     <bool name="config_enableCrtAnimations">false</bool>
-    <!--<bool name="config_forceDisableHardwareKeyboard">true</bool>-->
+
+
 </resources>
