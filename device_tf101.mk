@@ -114,12 +114,4 @@ $(call inherit-product, frameworks/base/build/tablet-dalvik-heap.mk)
 
 # Call the vendor to setup propiatory files
 $(call inherit-product-if-exists, vendor/asus/tf101/tf101-vendor.mk)
-
-
-# Device nameing
-PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
-PRODUCT_NAME := medroid_tf101
-PRODUCT_DEVICE := tf101
-PRODUCT_BRAND := asus
-PRODUCT_MODEL := Transformer TF101
 PRODUCT_MANUFACTURER := Asus
