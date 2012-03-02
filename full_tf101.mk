@@ -34,5 +34,5 @@ $(call inherit-product, device/asus/tf101/device_tf101.mk)
 PRODUCT_NAME := full_tf101
 PRODUCT_DEVICE := tf101
 PRODUCT_BRAND := asus
-PRODUCT_MODEL := Transformer TF101
-PRODUCT_MANUFACTURER := Asus
+PRODUCT_MODEL := EPAD
+PRODUCT_MANUFACTURER := asus

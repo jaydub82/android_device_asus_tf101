@@ -31,6 +31,7 @@ endif
 # Files needed for boot image
 PRODUCT_COPY_FILES += \
     $(LOCAL_KERNEL):kernel \
+    $(LOCAL_PATH)/ramdisk/init:root/init \
     $(LOCAL_PATH)/ramdisk/init.ventana.rc:root/init.ventana.rc\
     $(LOCAL_PATH)/ramdisk/init.ventana.usb.rc:root/init.ventana.usb.rc \
     $(LOCAL_PATH)/ramdisk/ueventd.ventana.rc:root/ueventd.ventana.rc
@@ -45,16 +46,19 @@ PRODUCT_COPY_FILES += \
 
 # Input device configeration files
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/idc/atmel-maxtouch.idc:system/usr/idc/atmel-maxtouch.idc \
-    $(LOCAL_PATH)/idc/elantech_touchscreen.idc:system/usr/idc/elantech_touchscreen.idc \
-    $(LOCAL_PATH)/idc/panjit_touch.idc:system/usr/idc/panjit_touch.idc \
-    $(LOCAL_PATH)/keychars/asusec.kcm:system/usr/keychars/asusec.kcm \
-    $(LOCAL_PATH)/keylayout/asusec.kl:system/usr/keylayout/asusec.kl \
-    $(LOCAL_PATH)/keylayout/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl
+    $(LOCAL_PATH)/usr/idc/atmel-maxtouch.idc:system/usr/idc/atmel-maxtouch.idc \
+    $(LOCAL_PATH)/usr/idc/elantech_touchscreen.idc:system/usr/idc/elantech_touchscreen.idc \
+    $(LOCAL_PATH)/usr/idc/panjit_touch.idc:system/usr/idc/panjit_touch.idc \
+    $(LOCAL_PATH)/usr/keychars/asusec.kcm:system/usr/keychars/asusec.kcm \
+    $(LOCAL_PATH)/usr/keylayout/asusec.kl:system/usr/keylayout/asusec.kl \
+    $(LOCAL_PATH)/usr/keylayout/gpio-keys.kl:system/usr/keylayout/gpio-keys.kl
 
 # Any prebuilt kernel modules
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/modules/bcm4329.ko:system/lib/modules/bcm4329.ko
+    $(LOCAL_PATH)/modules/bcm4329.ko:system/lib/modules/bcm4329.ko \
+    $(LOCAL_PATH)/modules/battery_rvsd.ko:system/lib/modules/battery_rvsd.ko \
+    $(LOCAL_PATH)/modules/bcmdhd.ko:system/lib/modules/bcmdhd.ko \
+    $(LOCAL_PATH)/modules/scsi_wait_scan.ko:system/lib/modules/scsi_wait_scan.ko
 
 # Camera/WiFi/BT Firmware
 PRODUCT_COPY_FILES += \
@@ -65,6 +69,7 @@ PRODUCT_COPY_FILES += \
 
 # These are the hardware-specific features
 PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/permissions/com.asus.hardware.00.xml:system/etc/permissions/com.asus.hardware.00.xml \
     frameworks/base/data/etc/tablet_core_hardware.xml:system/etc/permissions/tablet_core_hardware.xml \
     frameworks/base/data/etc/android.hardware.camera.xml:system/etc/permissions/android.hardware.camera.xml \
     frameworks/base/data/etc/android.hardware.camera.front.xml:system/etc/permissions/android.hardware.camera.front.xml \
@@ -91,18 +96,21 @@ PRODUCT_TAGS += dalvik.gc.type-precise
 # Extra packages to build for this device
 PRODUCT_PACKAGES += \
     	librs_jni \
-	com.android.future.usb.accessory \
-	make_ext4fs \
-	setup_fs \
+	    com.android.future.usb.accessory \
+	    make_ext4fs \
+	    setup_fs \
         audio.a2dp.default \
         libaudioutils \
-	libinvensense_mpl \
+	    libinvensense_mpl \
         blobpack_tf
 
 # Propertys spacific for this device
+#ro.build.branch and ro.build.modversion is for system update (still in dev)(timbit123)
 PRODUCT_PROPERTY_OVERRIDES := \
         ro.build.branch=tf101 \
-	ro.build.modversion=1.0.0 \
+	    ro.build.modversion=1.0.0 \
+        ro.ethernet.interface=eth0 \
+        ro.ethernet.autoEnable=yes \
     	wifi.interface=wlan0 \
     	wifi.supplicant_scan_interval=15 \
     	ro.opengles.version=131072 \
