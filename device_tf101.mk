@@ -19,7 +19,13 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 $(call inherit-product-if-exists, vendor/asus/tf101/tf101-vendor.mk)
 
-DEVICE_PACKAGE_OVERLAYS += device/asus/tf101/overlay
+# Prebuilt kernel location
+ifeq ($(TARGET_3G),)
+	DEVICE_PACKAGE_OVERLAYS += device/asus/tf101/overlay3g
+else
+	DEVICE_PACKAGE_OVERLAYS += device/asus/tf101/overlay
+endif
+
 
 # Prebuilt kernel location
 ifeq ($(TARGET_PREBUILT_KERNEL),)
@@ -96,19 +102,20 @@ PRODUCT_TAGS += dalvik.gc.type-precise
 # Extra packages to build for this device
 PRODUCT_PACKAGES += \
     	librs_jni \
-	    com.android.future.usb.accessory \
-	    make_ext4fs \
-	    setup_fs \
+	com.android.future.usb.accessory \
+	make_ext4fs \
+	setup_fs \
         audio.a2dp.default \
         libaudioutils \
-	    libinvensense_mpl \
+	libinvensense_mpl \
         blobpack_tf
 
 # Propertys spacific for this device
 #ro.build.branch and ro.build.modversion is for system update (still in dev)(timbit123)
 PRODUCT_PROPERTY_OVERRIDES := \
+	ro.wifi.country=GB \
         ro.build.branch=tf101 \
-	    ro.build.modversion=1.0.0 \
+	ro.build.modversion=1.0.0 \
         ro.ethernet.interface=eth0 \
         ro.ethernet.autoEnable=yes \
     	wifi.interface=wlan0 \

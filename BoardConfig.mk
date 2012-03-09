@@ -78,10 +78,12 @@ BOARD_FLASH_BLOCK_SIZE := 4096
 TARGET_PREBUILT_KERNEL := device/asus/tf101/kernel
 
 # Coustom Tools
+#BOARD_CUSTOM_RECOVERY_KEYMAPPING := ../../device/asus/tf101/recovery_ui.c
 TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := device/asus/tf101/releasetools/tf101_ota_from_target_files
 
+
 # Recovery Options
-#BOARD_CUSTOM_BOOTIMG_MK := device/asus/tf101/recovery/recovery.mk
+BOARD_CUSTOM_BOOTIMG_MK := device/asus/tf101/recovery/recovery.mk
 BOARD_HAS_NO_MISC_PARTITION := true
 BOARD_HAS_NO_SELECT_BUTTON := true
 BOARD_HAS_LARGE_FILESYSTEM := true
