@@ -20,7 +20,7 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 $(call inherit-product-if-exists, vendor/asus/tf101/tf101-vendor.mk)
 
 # Prebuilt kernel location
-ifeq ($(TARGET_3G),)
+ifeq ($(TARGET_3G), true)
 	DEVICE_PACKAGE_OVERLAYS += device/asus/tf101/overlay3g
 else
 	DEVICE_PACKAGE_OVERLAYS += device/asus/tf101/overlay
