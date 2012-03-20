@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<permissions>
+    <!-- hardware extras for the tf101 -->
+    <feature name="cna.hardware.dock" />
+    <feature name="cna.hardware.hall_sensor" />
+    <feature name="cna.hardware.keyboard" />
+    <feature name="cna.hardware.fw.dock_ec" />
+    <feature name="cna.hardware.fw.touch" />
+    <feature name="cna.hardware.sound.srs" />
+    <feature name="cna.hardware.gps" />
+</permissions>

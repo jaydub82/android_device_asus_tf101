@@ -140,6 +140,9 @@
 
    <string name="config_geocodeProvider">com.google.android.location.GeocodeProvider</string>
 
+    <!-- The number of degrees to rotate the display when the keyboard is open. -->
+    <integer name="config_lidOpenRotation">0</integer>
+
     <!-- Whether to even allow system settings for crt animations
      setting this to false will completely disable them -->
     <bool name="config_enableCrtAnimations">false</bool>
