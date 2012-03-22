@@ -143,6 +143,11 @@
     <!-- The number of degrees to rotate the display when the keyboard is open. -->
     <integer name="config_lidOpenRotation">0</integer>
 
+	 <integer name="config_lidKeyboardAccessibility">2</integer>
+
+	<!-- Asus dock compatibility disabled by default -->
+	<bool name="config_batteryHasAsusDock">true</bool>
+
     <!-- Whether to even allow system settings for crt animations
      setting this to false will completely disable them -->
     <bool name="config_enableCrtAnimations">false</bool>

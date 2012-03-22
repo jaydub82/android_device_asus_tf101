@@ -40,6 +40,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/ramdisk/init:root/init \
     $(LOCAL_PATH)/ramdisk/init.ventana.rc:root/init.ventana.rc\
     $(LOCAL_PATH)/ramdisk/init.ventana.usb.rc:root/init.ventana.usb.rc \
+	$(LOCAL_PATH)/ramdisk/sbin/texfat.ko:root/sbin/texfat.ko \
     $(LOCAL_PATH)/ramdisk/ueventd.ventana.rc:root/ueventd.ventana.rc
 
 # Prebuilt configeration files
@@ -49,6 +50,12 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilt/vold.fstab:system/etc/vold.fstab \
     $(LOCAL_PATH)/prebuilt/gps.conf:system/etc/gps.conf \
     $(LOCAL_PATH)/prebuilt/gpsconfig.xml:system/etc/gps/gpsconfig.xml
+
+# Copy Cifs packages
+PRODUCT_COPY_FILES += \
+	$(LOCAL_PATH)/modules/cifs.ko:system/lib/modules/cifs.ko \
+	$(LOCAL_PATH)/modules/md4.ko:system/lib/modules/md4.ko \
+	$(LOCAL_PATH)/modules/91modules:system/etc/init.d/91modules
 
 # Input device configeration files
 PRODUCT_COPY_FILES += \

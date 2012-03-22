@@ -9,20 +9,18 @@ on early-init
     symlink /mnt/sdcard /sdcard
 
 
-    # create directory for mounting usb drives
-    mkdir /Removable 0755 media_rw media_rw
-
-    # make the pathes for the external media mounts
-    mkdir /Removable/MicroSD 0666 system system
-    mkdir /Removable/USBdisk1 0666 system system
-    mkdir /Removable/USBdisk2 0666 system system
-    mkdir /Removable/SD 0666 system system
-
 on fs
     mount ext4 /dev/block/mmcblk0p1 /system wait ro
     setprop ro.crypto.tmpfs_options size=128m,mode=0771,uid=1000,gid=1000
     mount ext4 /dev/block/mmcblk0p7 /data wait noatime nodiratime nosuid nodev nodelalloc,errors=panic
     mount ext4 /dev/block/mmcblk0p2 /cache wait noatime nodiratime nosuid nodev nodelalloc,errors=panic
+	mount tmpfs tmpfs /Removable mode=0755,gid=1000
+
+    # temp fix for external storage mounts
+    mkdir /Removable/MicroSD 0666 system system
+    mkdir /Removable/SD 0666 system system
+    mkdir /Removable/USBdisk1 0666 system system
+    mkdir /Removable/USBdisk2 0666 system system
 
 on post-fs-data
     mkdir /data/misc/wifi 0770 wifi wifi
@@ -88,8 +86,8 @@ on boot
    chmod 666 /sys/devices/platform/tegra-i2c.0/i2c-0/0-005a/slowscan_enable
 
 # Default Read Ahead value for sdcards
-    write /sys/block/mmcblk0/queue/read_ahead_kb 2048
-    write /sys/block/mmcblk1/queue/read_ahead_kb 2048
+    write /sys/block/mmcblk0/queue/read_ahead_kb 4096
+    write /sys/block/mmcblk1/queue/read_ahead_kb 4096
 
 # Wiimote connect status
     write /data/misc/wminput/connected 0
@@ -110,7 +108,6 @@ on boot
     chmod 0664 /sys/class/gpio/gpio203/value
 
 #NTFS exFAT support
-    insmod /sbin/tntfs.ko
     insmod /sbin/texfat.ko
 
 # RIL

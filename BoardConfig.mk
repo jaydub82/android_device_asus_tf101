@@ -22,6 +22,8 @@ USE_CAMERA_STUB := false
 
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
+TARGET_HAS_ASUS_DOCK := true
+
 # Board nameing
 TARGET_NO_RADIOIMAGE := true
 TARGET_BOARD_PLATFORM := tegra
